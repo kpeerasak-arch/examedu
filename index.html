@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบทดสอบออนไลน์ทางพลศึกษา</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Prompt', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+  <!-- NAVBAR -->
+  <nav class="bg-indigo-900 text-white shadow-lg sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <span class="text-2xl font-bold tracking-wider">PE-EXAM</span>
+        <span class="text-xs bg-indigo-700 px-2 py-1 rounded text-indigo-200">Online Testing System</span>
+      </div>
+      <div id="navUser" class="hidden flex items-center space-x-4">
+        <span id="userNameDisplay" class="font-medium text-sm"></span>
+        <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-xs px-3 py-1.5 rounded transition">ออกจากระบบ</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- VIEW: LOGIN -->
+    <section id="viewLogin" class="max-w-md mx-auto bg-white p-8 rounded-xl shadow-md border border-slate-100">
+      <h2 class="text-2xl font-bold text-center text-indigo-950 mb-6">เข้าสู่ระบบทดสอบ</h2>
+      <form onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">อีเมล</label>
+          <input type="email" id="loginEmail" required class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="student01@test.com">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">รหัสผ่าน</label>
+          <input type="password" id="loginPassword" required class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••">
+        </div>
+        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg text-sm transition">เข้าสู่ระบบ</button>
+      </form>
+    </section>
+
+    <!-- VIEW: STUDENT MAIN / DASHBOARD -->
+    <section id="viewStudentHome" class="hidden space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Setup Exam -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 md:col-span-1">
+          <h3 class="text-lg font-bold mb-4 text-indigo-900 border-b pb-2">คลังข้อสอบ & เริ่มทดสอบ</h3>
+          <form onsubmit="startExam(event)" class="space-y-4">
+            <div>
+              <label class="block text-sm font-semibold mb-2">เลือกหัวข้อการสอบ (เลือกได้หลายหัวข้อ):</label>
+              <div id="categoryCheckboxes" class="space-y-2 max-h-48 overflow-y-auto border p-3 rounded-lg text-sm bg-slate-50">
+                <!-- Dynamic Loaded -->
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold mb-1">จำนวนข้อสอบที่ต้องการสุ่ม:</label>
+              <select id="examNumQuestions" class="w-full border rounded-lg p-2 text-sm">
+                <option value="10">10 ข้อ (สัดส่วน L1:1, L2:2, L3:5, L4:2)</option>
+                <option value="20">20 ข้อ (สัดส่วน L1:2, L2:4, L3:10, L4:4)</option>
+              </select>
+            </div>
+            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg text-sm transition">เริ่มทำแบบทดสอบ</button>
+          </form>
+        </div>
+
+        <!-- Dashboard Analytics -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 md:col-span-2 space-y-6">
+          <h3 class="text-lg font-bold text-indigo-900 border-b pb-2">Dashboard ติดตามพัฒนาการ & วิเคราะห์จุดอ่อน</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h4 class="text-xs font-semibold text-slate-500 uppercase mb-2">แนวโน้มคะแนนสอบ (Trend)</h4>
+              <canvas id="trendChart" class="w-full max-h-48"></canvas>
+            </div>
+            <div>
+              <h4 class="text-xs font-semibold text-slate-500 uppercase mb-2">จุดแข็ง-จุดอ่อน แยกตามหัวข้อ (%)</h4>
+              <canvas id="catChart" class="w-full max-h-48"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW: EXAM SCREEN -->
+    <section id="viewExam" class="hidden space-y-6 max-w-4xl mx-auto">
+      <!-- Exam Header Bar -->
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
+        <div>
+          <span class="text-xs font-bold text-slate-400 block">สถานะการทำข้อสอบ</span>
+          <span id="currentQuestionNum" class="text-lg font-bold text-indigo-900">ข้อที่ 1 / 10</span>
+        </div>
+        <div id="warningBadge" class="bg-amber-100 border border-amber-300 text-amber-800 text-xs px-3 py-1.5 rounded-full font-medium">
+          เตือนสลับหน้าจอ: <span id="switchCountText" class="font-bold">0</span>/3 ครั้ง
+        </div>
+        <button onclick="confirmSubmitExam()" class="bg-red-600 hover:bg-red-700 text-white font-medium text-xs px-4 py-2 rounded-lg transition">ส่งข้อสอบ</button>
+      </div>
+
+      <!-- Question Navigation Grid -->
+      <div id="examNavGrid" class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap gap-2">
+        <!-- Question status buttons -->
+      </div>
+
+      <!-- Question Content Box -->
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-6">
+        <div class="flex justify-between items-start gap-4">
+          <h3 id="questionText" class="text-lg font-medium leading-relaxed"></h3>
+          <span id="questionLevelBadge" class="text-xs bg-indigo-100 text-indigo-800 font-semibold px-2.5 py-1 rounded-full whitespace-nowrap"></span>
+        </div>
+        <div id="optionsContainer" class="space-y-3">
+          <!-- Dynamic Options -->
+        </div>
+        <div class="flex justify-between pt-4 border-t">
+          <button id="btnPrev" onclick="navigateExam(-1)" class="bg-slate-200 hover:bg-slate-300 px-4 py-2 rounded-lg text-sm font-medium">ข้อก่อนหน้า</button>
+          <button id="btnNext" onclick="navigateExam(1)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium">ข้อถัดไป</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW: ADMIN DASHBOARD -->
+    <section id="viewAdmin" class="hidden space-y-6">
+      <h2 class="text-2xl font-bold text-indigo-950">แผงควบคุมผู้ดูแลระบบ (Admin Control Center)</h2>
+      
+      <!-- Users Management -->
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+        <h3 class="text-lg font-bold text-slate-800">จัดการและอนุมัติผู้ใช้งาน (Users Management)</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-100 border-b">
+                <th class="p-3">User ID</th>
+                <th class="p-3">ชื่อ-นามสกุล</th>
+                <th class="p-3">อีเมล</th>
+                <th class="p-3">สิทธิ์</th>
+                <th class="p-3">สถานะ</th>
+                <th class="p-3">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="adminUserTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // Config: Replace with your deployed GAS Web App URL
+    const GAS_URL = 'YOUR_GAS_WEB_APP_URL_HERE';
+
+    let currentUser = null;
+    let currentExam = [];
+    let userAnswers = {};
+    let currentQuestionIndex = 0;
+    let switchCount = 0;
+    const MAX_SWITCH = 3;
+    let trendChartInstance = null;
+    let catChartInstance = null;
+
+    // --- API CALLER ---
+    async function apiCall(action, data = {}) {
+      try {
+        const res = await fetch(GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action, data })
+        });
+        return await res.json();
+      } catch (err) {
+        alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+        return { success: false };
+      }
+    }
+
+    // --- AUTHENTICATION ---
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+
+      const res = await apiCall('login', { email, password });
+      if (res.success) {
+        currentUser = res.user;
+        document.getElementById('userNameDisplay').innerText = `${currentUser.fullname} (${currentUser.role})`;
+        document.getElementById('navUser').classList.remove('hidden');
+        document.getElementById('viewLogin').classList.add('hidden');
+
+        if (currentUser.role === 'Admin') {
+          loadAdminDashboard();
+        } else {
+          loadStudentDashboard();
+        }
+      } else {
+        alert(res.message);
+      }
+    }
+
+    function logout() {
+      currentUser = null;
+      location.reload();
+    }
+
+    // --- STUDENT FLOW ---
+    async function loadStudentDashboard() {
+      document.getElementById('viewStudentHome').classList.remove('hidden');
+      
+      // Load Categories
+      const catRes = await apiCall('getCategories');
+      if (catRes.success) {
+        const container = document.getElementById('categoryCheckboxes');
+        container.innerHTML = catRes.categories.map(c => `
+          <label class="flex items-center space-x-2 cursor-pointer">
+            <input type="checkbox" name="examCats" value="${c.category_id}" checked class="rounded text-indigo-600 focus:ring-indigo-500">
+            <span>${c.category_name}</span>
+          </label>
+        `).join('');
+      }
+
+      // Load Analytics
+      const dashRes = await apiCall('getUserDashboard', { user_id: currentUser.user_id });
+      if (dashRes.success) {
+        renderCharts(dashRes.history, dashRes.catStats);
+      }
+    }
+
+    // --- EXAM ENGINE & ANTI-CHEATING ---
+    async function startExam(e) {
+      e.preventDefault();
+      const checkedCats = Array.from(document.querySelectorAll('input[name="examCats"]:checked')).map(cb => cb.value);
+      if (checkedCats.length === 0) {
+        alert('กรุณาเลือกอย่างน้อย 1 หัวข้อ');
+        return;
+      }
+
+      const numQ = Number(document.getElementById('examNumQuestions').value);
+      const res = await apiCall('generateExam', { category_ids: checkedCats, num_questions: numQ });
+
+      if (res.success) {
+        currentExam = res.exam;
+        userAnswers = {};
+        currentQuestionIndex = 0;
+        switchCount = 0;
+        document.getElementById('switchCountText').innerText = '0';
+        
+        document.getElementById('viewStudentHome').classList.add('hidden');
+        document.getElementById('viewExam').classList.remove('hidden');
+        
+        // Anti-Cheating Event Listener
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        
+        renderQuestion();
+      } else {
+        alert(res.message);
+      }
+    }
+
+    function handleVisibilityChange() {
+      if (document.hidden && currentExam.length > 0) {
+        switchCount++;
+        document.getElementById('switchCountText').innerText = switchCount;
+        if (switchCount >= MAX_SWITCH) {
+          alert('ท่านสลับหน้าจอเกิน 3 ครั้ง ระบบส่งข้อสอบอัตโนมัติ!');
+          submitExam('สลับหน้าจอเกินกำหนด');
+        } else {
+          alert(`คำเตือนครั้งที่ ${switchCount}: ห้ามสลับหน้าจอระหว่างการทำข้อสอบ!`);
+        }
+      }
+    }
+
+    function renderQuestion() {
+      const q = currentExam[currentQuestionIndex];
+      document.getElementById('currentQuestionNum').innerText = `ข้อที่ ${currentQuestionIndex + 1} / ${currentExam.length}`;
+      document.getElementById('questionText').innerText = q.question_text;
+      document.getElementById('questionLevelBadge').innerText = `Level ${q.level}`;
+
+      // Render Options
+      const optionsBox = document.getElementById('optionsContainer');
+      optionsBox.innerHTML = q.options.map(opt => {
+        const isChecked = userAnswers[q.question_id] === opt.key ? 'checked' : '';
+        return `
+          <label class="flex items-center p-3 border rounded-lg hover:bg-slate-50 cursor-pointer transition">
+            <input type="radio" name="currentOpt" value="${opt.key}" ${isChecked} onchange="selectAnswer('${q.question_id}', '${opt.key}')" class="text-indigo-600 focus:ring-indigo-500">
+            <span class="ml-3 text-sm">${opt.key}. ${opt.text}</span>
+          </label>
+        `;
+      }).join('');
+
+      renderNavGrid();
+    }
+
+    function renderNavGrid() {
+      const grid = document.getElementById('examNavGrid');
+      grid.innerHTML = currentExam.map((q, idx) => {
+        const isAnswered = !!userAnswers[q.question_id];
+        const isCurrent = idx === currentQuestionIndex;
+        let btnStyle = isCurrent ? 'bg-indigo-600 text-white ring-2 ring-indigo-400' : isAnswered ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200';
+        return `<button onclick="jumpToQuestion(${idx})" class="w-8 h-8 rounded-lg text-xs font-semibold ${btnStyle}">${idx + 1}</button>`;
+      }).join('');
+    }
+
+    function selectAnswer(qId, key) {
+      userAnswers[qId] = key;
+      renderNavGrid();
+    }
+
+    function jumpToQuestion(idx) {
+      currentQuestionIndex = idx;
+      renderQuestion();
+    }
+
+    function navigateExam(dir) {
+      const newIdx = currentQuestionIndex + dir;
+      if (newIdx >= 0 && newIdx < currentExam.length) {
+        currentQuestionIndex = newIdx;
+        renderQuestion();
+      }
+    }
+
+    function confirmSubmitExam() {
+      if (confirm('คุณต้องการยืนยันการส่งข้อสอบใช่หรือไม่?')) {
+        submitExam('ส่งปกติ');
+      }
+    }
+
+    async function submitExam(reason) {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+
+      const answersPayload = currentExam.map(q => ({
+        question_id: q.question_id,
+        selected_option: userAnswers[q.question_id] || ''
+      }));
+
+      const res = await apiCall('submitExam', {
+        user_id: currentUser.user_id,
+        answers: answersPayload,
+        switch_tab_count: switchCount
+      });
+
+      if (res.success) {
+        alert(`ทำแบบทดสอบเสร็จสิ้น!\nคะแนนที่ได้: ${res.result.score} / ${res.result.total_score} (${res.result.percentage}%)\nผลการสอบ: ${res.result.pass_status}`);
+        document.getElementById('viewExam').classList.add('hidden');
+        currentExam = [];
+        loadStudentDashboard();
+      }
+    }
+
+    // --- CHARTS & ANALYTICS ---
+    function renderCharts(history, catStats) {
+      // Trend Chart
+      const trendCtx = document.getElementById('trendChart').getContext('2d');
+      if (trendChartInstance) trendChartInstance.destroy();
+      trendChartInstance = new Chart(trendCtx, {
+        type: 'line',
+        data: {
+          labels: history.map(h => h.date),
+          datasets: [{
+            label: 'คะแนน (%)',
+            data: history.map(h => h.percentage),
+            borderColor: '#4f46e5',
+            tension: 0.2,
+            fill: false
+          }]
+        },
+        options: { scales: { y: { min: 0, max: 100 } } }
+      });
+
+      // Category Chart
+      const catCtx = document.getElementById('catChart').getContext('2d');
+      if (catChartInstance) catChartInstance.destroy();
+      
+      const catLabels = [];
+      const catPercentages = [];
+      Object.values(catStats).forEach(c => {
+        catLabels.push(c.name.substring(0, 15) + '...');
+        catPercentages.push(c.total > 0 ? ((c.correct / c.total) * 100).toFixed(1) : 0);
+      });
+
+      catChartInstance = new Chart(catCtx, {
+        type: 'bar',
+        data: {
+          labels: catLabels,
+          datasets: [{
+            label: 'ความถูกต้อง (%)',
+            data: catPercentages,
+            backgroundColor: '#10b981'
+          }]
+        },
+        options: { scales: { y: { min: 0, max: 100 } } }
+      });
+    }
+
+    // --- ADMIN FLOW ---
+    async function loadAdminDashboard() {
+      document.getElementById('viewAdmin').classList.remove('hidden');
+      const res = await apiCall('getAdminData');
+      if (res.success) {
+        const tbody = document.getElementById('adminUserTable');
+        tbody.innerHTML = res.users.map(u => `
+          <tr class="border-b hover:bg-slate-50">
+            <td class="p-3">${u.user_id}</td>
+            <td class="p-3">${u.fullname}</td>
+            <td class="p-3">${u.email}</td>
+            <td class="p-3">${u.role}</td>
+            <td class="p-3"><span class="px-2 py-1 rounded-full text-xs ${u.status === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${u.status}</span></td>
+            <td class="p-3">
+              ${u.status === 'Pending' ? `<button onclick="approveUser('${u.user_id}', 'Approved')" class="bg-indigo-600 text-white text-xs px-2.5 py-1 rounded hover:bg-indigo-700">อนุมัติ</button>` : '-'}
+            </td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    async function approveUser(userId, status) {
+      const res = await apiCall('approveUser', { user_id: userId, status: status });
+      if (res.success) {
+        alert('อัปเดตสถานะสำเร็จ');
+        loadAdminDashboard();
+      }
+    }
+  </script>
+</body>
+</html>

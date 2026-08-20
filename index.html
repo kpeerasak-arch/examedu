@@ -7,7 +7,19 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <style> body { font-family: 'Prompt', sans-serif; } </style>
+  <!style> body { font-family: 'Prompt', sans-serif; } <!/style>
+  <style>
+    body {
+      font-family: 'Prompt', sans-serif;
+      /* --- ส่วนของโค้ดพื้นหลัง --- */
+      background-image: url('img/background.jpg'); /* เปลี่ยนชื่อไฟล์ภาพตรงนี้ให้ถูกต้อง */
+      background-size: cover; /* ขยายภาพให้เต็มหน้าจอเสมอ */
+      background-position: center; /* จัดภาพให้อยู่ตรงกลาง */
+      background-repeat: no-repeat; /* ไม่ให้ภาพซ้ำ */
+      background-attachment: fixed; /* ให้พื้นหลังตรึงอยู่กับที่เมื่อเลื่อนหน้าจอ */
+      /* -------------------------- */
+    }
+  </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen">
 

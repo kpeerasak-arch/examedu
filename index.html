@@ -16,7 +16,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
       <div class="flex items-center space-x-3">
         <span class="text-2xl font-bold tracking-wider">PE-EXAM</span>
-        <span class="text-xs bg-indigo-700 px-2 py-1 rounded text-indigo-200">Online Testing System : By k.peerasak@gmail.com v.2</span>
+        <span class="text-xs bg-indigo-700 px-2 py-1 rounded text-indigo-200">Online Testing System v2</span>
       </div>
       <div id="navUser" class="hidden flex items-center space-x-4">
         <span id="userNameDisplay" class="font-medium text-sm"></span>
@@ -53,7 +53,7 @@
           <div id="examConfigDisplay" class="space-y-3 text-sm">
             <p class="text-slate-500">กำลังโหลดชุดข้อสอบ...</p>
           </div>
-          <button id="btnStartExam" onclick="startExam()" disabled class="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-semibold py-2.5 rounded-lg text-sm transition">เริ่มทำแบบทดสอบ</button>
+          <button id="btnStartExam" onclick="showExamAgreement()" disabled class="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-semibold py-2.5 rounded-lg text-sm transition">เริ่มทำแบบทดสอบ</button>
         </div>
 
         <!-- Student Analytics -->
@@ -116,7 +116,7 @@
             </div>
             <div>
               <label class="block text-sm font-semibold mb-1">จำนวนข้อสอบที่ต้องการสุ่ม:</label>
-             <select id="adminNumQuestions" class="w-full border rounded-lg p-2 text-sm">
+              <select id="adminNumQuestions" class="w-full border rounded-lg p-2 text-sm">
                 <option value="10">10 ข้อ (L1:1, L2:2, L3:5, L4:2)</option>
                 <option value="20">20 ข้อ (L1:2, L2:4, L3:10, L4:4)</option>
                 <option value="30">30 ข้อ (L1:3, L2:6, L3:15, L4:6)</option>
@@ -125,7 +125,7 @@
                 <option value="60">60 ข้อ (L1:6, L2:12, L3:30, L4:12)</option>
                 <option value="70">70 ข้อ (L1:7, L2:14, L3:35, L4:14)</option>
                 <option value="80">80 ข้อ (L1:8, L2:16, L3:40, L4:16)</option>
-            </select>
+              </select>
             </div>
           </div>
           <div>
@@ -211,6 +211,31 @@
       </div>
     </div>
 
+    <!-- MODAL: EXAM AGREEMENT (ข้อตกลงเบื้องต้น) -->
+    <div id="examAgreementModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
+      <div class="bg-white rounded-xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
+        <div class="text-center">
+          <div class="inline-flex items-center justify-center w-12 h-12 bg-amber-100 text-amber-600 rounded-full mb-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+          </div>
+          <h3 class="text-xl font-bold text-slate-800">ข้อตกลงก่อนเริ่มทำแบบทดสอบ</h3>
+        </div>
+        <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 text-sm text-slate-700 space-y-2">
+          <p>กรุณาอ่านและทำความเข้าใจเงื่อนไขก่อนเริ่มทำแบบทดสอบ:</p>
+          <ul class="list-disc pl-5 space-y-1">
+            <li><strong>ห้ามสลับหน้าจอ (Anti-Cheating):</strong> หากท่านสลับหน้าจอหรือเปิดแท็บอื่นเกิน <strong>3 ครั้ง</strong> ระบบจะทำการ<strong>ส่งข้อสอบโดยอัตโนมัติทันที</strong></li>
+            <li>ห้ามค้นหาคำตอบจากแหล่งข้อมูลภายนอกทุกรูปแบบ</li>
+            <li>คำตอบทุกข้อที่ท่านเลือกจะถูกบันทึกไว้ในระบบ</li>
+            <li>ตรวจสอบให้แน่ใจว่าสัญญาณอินเทอร์เน็ตของท่านเสถียร</li>
+          </ul>
+        </div>
+        <div class="flex space-x-3 pt-2">
+          <button onclick="closeAgreementModal()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium py-2.5 rounded-lg transition text-sm">ยกเลิก</button>
+          <button onclick="proceedToExam()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg transition text-sm">ยอมรับและเริ่มสอบ</button>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <script>
@@ -282,7 +307,6 @@
       if (configRes.success && configRes.config) {
         activeConfig = configRes.config;
         
-        // แปลง selected_categories เป็น Array ที่สะอาด
         let catList = activeConfig.selected_categories;
         if (typeof catList === 'string') {
           try { catList = JSON.parse(catList); } catch(e) { catList = catList.split(','); }
@@ -312,11 +336,28 @@
       }
     }
 
-    async function startExam() {
+    // ฟังก์ชันเปิด Modal ข้อตกลง
+    function showExamAgreement() {
+      document.getElementById('examAgreementModal').classList.remove('hidden');
+    }
+
+    // ฟังก์ชันปิด Modal ข้อตกลง
+    function closeAgreementModal() {
+      document.getElementById('examAgreementModal').classList.add('hidden');
+    }
+
+    // ฟังก์ชันกดยอมรับจากหน้า Modal และเริ่มดึงข้อสอบ
+    async function proceedToExam() {
+      closeAgreementModal(); // ปิด Modal
+
       if (!activeConfig || !activeConfig.selected_categories || activeConfig.selected_categories.length === 0) {
         alert('ไม่พบข้อมูลหมวดหมู่ในชุดข้อสอบ กรุณาติดต่อ Admin ให้บันทึกจัดชุดข้อสอบใหม่อีกครั้ง');
         return;
       }
+
+      // แสดง Loading เล็กน้อยที่ปุ่มเดิม หรือ Alert
+      document.getElementById('btnStartExam').innerText = 'กำลังดึงข้อสอบ...';
+      document.getElementById('btnStartExam').disabled = true;
 
       const res = await apiCall('generateExam', {
         category_ids: activeConfig.selected_categories,
@@ -337,6 +378,8 @@
         renderQuestion();
       } else {
         alert(res.message);
+        document.getElementById('btnStartExam').innerText = 'เริ่มทำแบบทดสอบ';
+        document.getElementById('btnStartExam').disabled = false;
       }
     }
 
@@ -426,6 +469,11 @@
         alert(`ทำแบบทดสอบเสร็จสิ้น!\nคะแนนที่ได้: ${res.result.score} / ${res.result.total_score} (${res.result.percentage}%)\nผลการสอบ: ${res.result.pass_status}`);
         document.getElementById('viewExam').classList.add('hidden');
         currentExam = [];
+        
+        // คืนค่าปุ่มให้เป็นเหมือนเดิม
+        document.getElementById('btnStartExam').innerText = 'เริ่มทำแบบทดสอบ';
+        document.getElementById('btnStartExam').disabled = false;
+
         loadStudentDashboard();
       }
     }
